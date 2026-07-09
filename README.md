@@ -45,20 +45,26 @@ demographics, account info, and services subscribed to. Target: `Churn`
 
 ## Results
 
-*(Fill in after running `python -m src.train` — metrics print to console
-and are also worth pasting here for the resume-facing version of this repo.)*
+Trained on the full Telco Customer Churn dataset (7,043 customers, 80/20 stratified split).
 
-| Metric    | Score |
-|-----------|-------|
-| Accuracy  | TBD   |
-| Precision | TBD   |
-| Recall    | TBD   |
-| F1        | TBD   |
-| ROC AUC   | TBD   |
+| Metric    | Score  |
+|-----------|--------|
+| Accuracy  | 0.7566 |
+| Precision | 0.5283 |
+| Recall    | 0.7727 |
+| F1        | 0.6276 |
+| ROC AUC   | 0.8410 |
 
-**Key drivers of churn** (from SHAP global feature importance — fill in
-after training): typically contract type, tenure, and internet service
-type dominate in this dataset.
+**Key drivers of churn** (top features by XGBoost gain-based importance):
+1. **Contract type** — by far the strongest predictor (0.37 importance, roughly 3x the next feature)
+2. **Online Security** — customers without it churn more
+3. **Tech Support** — same pattern as Online Security
+4. Internet Service type, Streaming Movies, and tenure round out the top 6
+
+The model was deliberately tuned to favor recall over precision (via
+`scale_pos_weight`), since in a churn context the cost of missing an
+at-risk customer (false negative) is typically higher than the cost of
+flagging a customer who was going to stay anyway (false positive).
 
 ## Project Structure
 
@@ -77,6 +83,7 @@ churn-predictor/
 │   └── explain.py                # SHAP -> human-readable top factors
 ├── api/
 │   └── main.py                   # FastAPI app
+├── app.py                        # Streamlit front end (calls the API)
 ├── requirements.txt
 └── README.md
 ```
@@ -150,9 +157,19 @@ curl -X POST http://127.0.0.1:8000/predict \
 Interactive API docs (Swagger UI) are auto-generated at
 `http://127.0.0.1:8000/docs`.
 
+**4. (Optional) Run the Streamlit front end:**
+
+With the API still running in one terminal, open a second terminal:
+```bash
+streamlit run app.py
+```
+This opens a browser UI at `http://localhost:8501` with a form for entering
+a customer's profile and a live-updating churn risk + SHAP factor
+breakdown. It's a thin client — all it does is call the `/predict`
+endpoint, so the API must be running first.
+
 ## Next Steps / Extensions
 
-- Streamlit front end for non-technical stakeholders
 - Model comparison (XGBoost vs. LightGBM vs. logistic regression baseline)
 - Threshold tuning based on cost-sensitive analysis (false negative cost >
   false positive cost in churn use cases)
